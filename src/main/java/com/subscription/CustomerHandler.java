@@ -1,10 +1,10 @@
-package com.subscription;
+package main.java.com.subscription;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
-import com.subscription.utils.JsonUtil;
-import com.subscription.utils.ApiException;
-import com.subscription.utils.Authentication;
+import main.java.com.subscription.utils.JsonUtil;
+import main.java.com.subscription.utils.ApiException;
+import main.java.com.subscription.utils.Authentication;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.*;

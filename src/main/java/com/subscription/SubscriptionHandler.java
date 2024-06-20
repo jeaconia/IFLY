@@ -2,6 +2,8 @@ package main.java.com.subscription;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import main.java.com.subscription.utils.ApiException;
+
 import java.io.IOException;
 import java.sql.*;
 import java.util.Map;

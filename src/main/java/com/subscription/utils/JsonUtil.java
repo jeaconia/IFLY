@@ -1,4 +1,4 @@
-package com.subscription.utils;
+package main.java.com.subscription.utils;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.fasterxml.jackson.databind.ObjectMapper;

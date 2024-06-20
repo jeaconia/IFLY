@@ -1,4 +1,4 @@
-package main.java.com.subscription;
+package main.java.com.subscription.utils;
 
 public class ApiException extends Exception {
     private final int statusCode;
