@@ -1,51 +1,41 @@
-package main.java.com.subscription.utils;
+package com.subscription.utils;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
+import com.sun.net.httpserver.HttpExchange;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.charset.StandardCharsets;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
 
 public class JsonUtil {
-    private static final Gson gson = new Gson();
+    private static final ObjectMapper objectMapper = new ObjectMapper();
 
     public static void sendResponse(HttpExchange exchange, int statusCode, String response) throws IOException {
-        exchange.getResponseHeaders().set("Content-Type", "application/json");
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
         exchange.sendResponseHeaders(statusCode, response.getBytes().length);
-        try (OutputStream os = exchange.getResponseBody()) {
-            os.write(response.getBytes());
-        }
-    }
-
-    public static Map<String, Object> jsonToMap(String json) {
-        return gson.fromJson(json, HashMap.class);
-    }
-
-    public static String mapToJson(Map<String, Object> map) {
-        return gson.toJson(map);
+        OutputStream os = exchange.getResponseBody();
+        os.write(response.getBytes());
+        os.close();
     }
 
     public static String resultSetToJson(ResultSet rs) throws SQLException {
-        JsonObject jsonObject = new JsonObject();
-        ResultSetMetaData metadata = rs.getMetaData();
-        int columnCount = metadata.getColumnCount();
-
-        int i = 0;
+        List<Map<String, Object>> rows = new ArrayList<>();
+        ResultSetMetaData metaData = rs.getMetaData();
+        int columnCount = metaData.getColumnCount();
         while (rs.next()) {
-            JsonObject row = new JsonObject();
-            for (int c = 1; c <= columnCount; ++c) {
-                row.addProperty(metadata.getColumnName(c), rs.getString(c));
+            Map<String, Object> row = new HashMap<>();
+            for (int i = 1; i <= columnCount; i++) {
+                row.put(metaData.getColumnName(i), rs.getObject(i));
             }
-            jsonObject.add(String.valueOf(++i), row);
+            rows.add(row);
         }
+        return objectMapper.writeValueAsString(rows);
+    }
 
-        return jsonObject.toString();
+    public static Map<String, Object> jsonToMap(String json) throws IOException {
+        return objectMapper.readValue(json, Map.class);
     }
 }

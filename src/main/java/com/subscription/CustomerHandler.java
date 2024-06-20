@@ -1,9 +1,14 @@
-package main.java.com.subscription;
+package com.subscription;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
+import com.subscription.utils.JsonUtil;
+import com.subscription.utils.ApiException;
+import com.subscription.utils.Authentication;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.sql.*;
+import java.util.HashMap;
 import java.util.Map;
 
 public class CustomerHandler implements HttpHandler {
@@ -72,7 +77,7 @@ public class CustomerHandler implements HttpHandler {
         if (rs.next()) {
             return JsonUtil.resultSetToJson(rs);
         } else {
-            throw new ApiException(404, "main.java.com.subscription.models.Customer not found");
+            throw new ApiException(404, "Customer not found");
         }
     }
 
@@ -123,7 +128,7 @@ public class CustomerHandler implements HttpHandler {
 
         int affectedRows = stmt.executeUpdate();
         if (affectedRows == 0) {
-            throw new ApiException(404, "main.java.com.subscription.models.Customer not found");
+            throw new ApiException(404, "Customer not found");
         }
 
         return "{ \"id\": " + customerId + " }";
