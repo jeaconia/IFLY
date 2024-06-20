@@ -1,3 +1,5 @@
+package main.java.com.subscription.models;
+
 public class Card {
     private int id;
     private int customer;

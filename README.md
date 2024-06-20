@@ -1,4 +1,4 @@
-# Tugas 2 PBO - Backend API Sistem Pembayaran Subscription Sederhana
+# Tugas 2 PBO - Backend API Sistem Pembayaran main.java.com.subscription.models.Subscription Sederhana
 
 Anggota:
 

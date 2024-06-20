@@ -1,3 +1,5 @@
+package main.java.com.subscription;
+
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import java.io.IOException;
@@ -70,7 +72,7 @@ public class ItemHandler implements HttpHandler {
         if (rs.next()) {
             return JsonUtil.resultSetToJson(rs);
         } else {
-            throw new ApiException(404, "Item not found");
+            throw new ApiException(404, "main.java.com.subscription.models.Item not found");
         }
     }
 
@@ -121,7 +123,7 @@ public class ItemHandler implements HttpHandler {
 
         int affectedRows = stmt.executeUpdate();
         if (affectedRows == 0) {
-            throw new ApiException(404, "Item not found");
+            throw new ApiException(404, "main.java.com.subscription.models.Item not found");
         }
 
         return "{ \"id\": " + itemId + " }";

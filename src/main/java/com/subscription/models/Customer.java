@@ -1,3 +1,5 @@
+package main.java.com.subscription.models;
+
 public class Customer {
     private int id;
     private String email;

@@ -1,3 +1,5 @@
+package main.java.com.subscription.models;
+
 public class SubscriptionItem {
     private int id;
     private int subscription;

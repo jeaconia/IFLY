@@ -1,3 +1,5 @@
+package main.java.com.subscription.models;
+
 import java.util.Date;
 public class Subscription {
     private int id;

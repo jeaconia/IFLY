@@ -1,3 +1,5 @@
+package main.java.com.subscription;
+
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;
 import java.io.IOException;
