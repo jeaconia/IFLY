@@ -30,11 +30,18 @@ public class CustomerHandler implements HttpHandler {
 
         try {
             if (method.equals("GET")) {
-                if (pathSegments.length == 2) {
-                    response = getAllCustomers();
-                } else if (pathSegments.length == 3) {
+                if (pathSegments.length == 3 && pathSegments[1].equals("customers")) {
                     int customerId = Integer.parseInt(pathSegments[2]);
-                    response = getCustomerById(customerId);
+                    if (exchange.getRequestURI().getPath().endsWith("/cards")) {
+                        response = getCustomerCards(customerId);
+                    } else if (exchange.getRequestURI().getPath().endsWith("/subscriptions")) {
+                        String subscriptionStatus = exchange.getRequestURI().getQuery();
+                        response = getCustomerSubscriptions(customerId, subscriptionStatus);
+                    } else {
+                        response = getCustomerById(customerId);
+                    }
+                } else if (pathSegments.length == 2) {
+                    response = getAllCustomers();
                 }
             } else if (method.equals("POST")) {
                 if (pathSegments.length == 2) {
@@ -71,7 +78,43 @@ public class CustomerHandler implements HttpHandler {
         return JsonUtil.resultSetToJson(rs);
     }
 
+    private String getCustomerCards(int customerId) throws SQLException, ApiException {
+        Connection conn = Database.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("SELECT * FROM cards WHERE customer_id = ?");
+        stmt.setInt(1, customerId);
+        ResultSet rs = stmt.executeQuery();
+
+        return JsonUtil.resultSetToJson(rs);
+    }
+
+    private String getCustomerSubscriptions(int customerId, String subscriptionStatus) throws SQLException, ApiException {
+        String query = "SELECT * FROM subscriptions WHERE customer_id = ?";
+        if (subscriptionStatus != null) {
+            switch (subscriptionStatus) {
+                case "active":
+                    query += " AND status = 'active'";
+                    break;
+                case "cancelled":
+                    query += " AND status = 'cancelled'";
+                    break;
+                case "non-renewing":
+                    query += " AND status = 'non-renewing'";
+                    break;
+                default:
+                    throw new ApiException(400, "Invalid subscription status filter");
+            }
+        }
+
+        Connection conn = Database.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(query);
+        stmt.setInt(1, customerId);
+        ResultSet rs = stmt.executeQuery();
+
+        return JsonUtil.resultSetToJson(rs);
+    }
+
     private String getCustomerById(int customerId) throws SQLException, ApiException {
+
         Connection conn = Database.getConnection();
         PreparedStatement stmt = conn.prepareStatement("SELECT * FROM customers WHERE id = ?");
         stmt.setInt(1, customerId);
