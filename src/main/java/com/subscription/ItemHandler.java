@@ -59,8 +59,13 @@ public class ItemHandler implements HttpHandler {
                     response = updateItem(itemId, requestBody);
                 }
             } else if (method.equals("DELETE")) {
-                JsonUtil.sendResponse(exchange, 405, "Method Not Allowed");
-                return;
+                if (pathSegments.length == 3 && pathSegments[1].equals("items")) {
+                    int itemId = Integer.parseInt(pathSegments[2]);
+                    response = deleteItem(itemId);
+                } else {
+                    JsonUtil.sendResponse(exchange, 404, "Not Found");
+                    return;
+                }
             } else {
                 JsonUtil.sendResponse(exchange, 405, "Method Not Allowed");
                 return;
@@ -150,5 +155,18 @@ public class ItemHandler implements HttpHandler {
         }
 
         return "{ \"id\": " + itemId + " }";
+    }
+
+    private String deleteItem(int itemId) throws SQLException, ApiException {
+        Connection conn = Database.getConnection();
+        PreparedStatement stmt = conn.prepareStatement("DELETE FROM items WHERE id = ?");
+        stmt.setInt(1, itemId);
+
+        int affectedRows = stmt.executeUpdate();
+        if (affectedRows == 0) {
+            throw new ApiException(404, "Item not found");
+        }
+
+        return "{ \"message\": \"Item deleted successfully\" }";
     }
 }

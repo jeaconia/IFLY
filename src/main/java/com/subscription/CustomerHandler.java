@@ -58,19 +58,32 @@ public class CustomerHandler implements HttpHandler {
                 if (pathSegments.length == 2 && pathSegments[1].equals("customers")) {
                     String requestBody = new String(exchange.getRequestBody().readAllBytes());
                     response = createCustomer(requestBody);
+                }else {
+                    JsonUtil.sendResponse(exchange, 404, "Not Found");
+                    return;
                 }
             } else if (method.equals("PUT")) {
-                if (pathSegments.length == 3 && pathSegments[1].equals("customers")) {
+                System.out.println("Path segments: " + Arrays.toString(pathSegments));
+                if (pathSegments.length == 5 && pathSegments[1].equals("customers") && pathSegments[3].equals("shipping_addresses")) {
+                    System.out.printf("MASOK");
+                    int shippingAddressId = Integer.parseInt(pathSegments[4]);
+                    String requestBody = new String(exchange.getRequestBody().readAllBytes());
+                    response = updateShippingAddress(shippingAddressId, requestBody);
+                } else if (pathSegments.length == 3 && pathSegments[1].equals("customers")) {
                     int customerId = Integer.parseInt(pathSegments[2]);
                     String requestBody = new String(exchange.getRequestBody().readAllBytes());
                     response = updateCustomer(customerId, requestBody);
                 }
             } else if (method.equals("DELETE")) {
-                JsonUtil.sendResponse(exchange, 405, "Method Not Allowed");
-                return;
-            } else {
-                JsonUtil.sendResponse(exchange, 405, "Method Not Allowed");
-                return;
+                System.out.println("masukkk");
+                if (pathSegments.length == 5 && pathSegments[1].equals("customers") && pathSegments[3].equals("cards")) {
+                    int customerId = Integer.parseInt(pathSegments[2]);
+                    int cardId = Integer.parseInt(pathSegments[4]);
+                    response = deleteCustomerCard(customerId, cardId);
+                } else {
+                    JsonUtil.sendResponse(exchange, 405, "Method Not Allowed");
+                    return;
+                }
             }
 
             JsonUtil.sendResponse(exchange, 200, response);
@@ -197,5 +210,61 @@ public class CustomerHandler implements HttpHandler {
         }
 
         return "{ \"id\": " + customerId + " }";
+    }
+
+    private String updateShippingAddress(int shippingAddressId, String requestBody) throws SQLException, ApiException, IOException {
+        Map<String, Object> shippingAddressData = JsonUtil.jsonToMap(requestBody);
+        if (shippingAddressData.isEmpty()) {
+            throw new ApiException(400, "Missing fields to update");
+        }
+
+        Connection conn = Database.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(
+                "UPDATE shipping_addresses SET customer = ?, title = ?, line1 = ?, line2 = ?, city = ?, province = ?, postcode = ? WHERE id = ?"
+        );
+        stmt.setInt(1, (int) shippingAddressData.getOrDefault("customer", ""));
+        stmt.setString(2, (String) shippingAddressData.getOrDefault("title", ""));
+        stmt.setString(3, (String) shippingAddressData.getOrDefault("line1", ""));
+        stmt.setString(4, (String) shippingAddressData.getOrDefault("line2", ""));
+        stmt.setString(5, (String) shippingAddressData.getOrDefault("city", ""));
+        stmt.setString(6, (String) shippingAddressData.getOrDefault("province", ""));
+        stmt.setString(7, (String   ) shippingAddressData.getOrDefault("postcode", ""));
+        stmt.setInt(8, shippingAddressId);
+
+        int affectedRows = stmt.executeUpdate();
+        if (affectedRows == 0) {
+            throw new ApiException(404, "Shipping address not found for customer");
+        }
+
+        return "{ \"id\": " + shippingAddressId + " }";
+    }
+
+    private String deleteCustomerCard(int customerId, int cardId) throws SQLException, ApiException {
+        Connection conn = Database.getConnection();
+
+        // Check if the card exists and belongs to the customer
+        PreparedStatement checkStmt = conn.prepareStatement("SELECT is_primary FROM cards WHERE id = ? AND customer = ?");
+        checkStmt.setInt(1, cardId);
+        checkStmt.setInt(2, customerId);
+        ResultSet rs = checkStmt.executeQuery();
+
+        if (rs.next()) {
+            boolean isPrimary = rs.getBoolean("is_primary");
+            if (!isPrimary) {
+                PreparedStatement deleteStmt = conn.prepareStatement("DELETE FROM cards WHERE id = ?");
+                deleteStmt.setInt(1, cardId);
+
+                int affectedRows = deleteStmt.executeUpdate();
+                if (affectedRows > 0) {
+                    return "{ \"message\": \"Card deleted successfully\" }";
+                } else {
+                    throw new ApiException(500, "Failed to delete card");
+                }
+            } else {
+                throw new ApiException(400, "Cannot delete primary card");
+            }
+        } else {
+            throw new ApiException(404, "Card not found for customer");
+        }
     }
 }
