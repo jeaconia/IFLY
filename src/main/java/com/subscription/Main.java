@@ -1,4 +1,4 @@
-package main.java.com.subscription;
+package com.subscription;
 
 import com.sun.net.httpserver.HttpServer;
 import java.net.InetSocketAddress;

@@ -1,6 +1,5 @@
-package main.java.com.subscription.utils;
-
-import main.java.com.subscription.Main;
+package com.subscription.utils;
+import com.subscription.Main;
 
 public class Authentication {
     public static boolean isAuthenticated(String apiKey) {
