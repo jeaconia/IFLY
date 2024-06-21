@@ -1,8 +1,8 @@
 package com.subscription.utils;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.sun.net.httpserver.HttpExchange;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.sql.ResultSet;
@@ -32,7 +32,11 @@ public class JsonUtil {
             }
             rows.add(row);
         }
-        return objectMapper.writeValueAsString(rows);
+        try {
+            return objectMapper.writeValueAsString(rows);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public static Map<String, Object> jsonToMap(String json) throws IOException {

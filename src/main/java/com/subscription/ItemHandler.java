@@ -80,7 +80,7 @@ public class ItemHandler implements HttpHandler {
         }
     }
 
-    private String createItem(String requestBody) throws SQLException, ApiException {
+    private String createItem(String requestBody) throws SQLException, ApiException, IOException {
         Map<String, Object> itemData = JsonUtil.jsonToMap(requestBody);
         if (!itemData.containsKey("name") || !itemData.containsKey("price") || !itemData.containsKey("type")) {
             throw new ApiException(400, "Missing required fields");
@@ -109,7 +109,7 @@ public class ItemHandler implements HttpHandler {
         }
     }
 
-    private String updateItem(int itemId, String requestBody) throws SQLException, ApiException {
+    private String updateItem(int itemId, String requestBody) throws SQLException, ApiException, IOException {
         Map<String, Object> itemData = JsonUtil.jsonToMap(requestBody);
         if (itemData.isEmpty()) {
             throw new ApiException(400, "Missing fields to update");

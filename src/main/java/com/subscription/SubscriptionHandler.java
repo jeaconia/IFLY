@@ -81,7 +81,12 @@ public class SubscriptionHandler implements HttpHandler {
     }
 
     private String createSubscription(String requestBody) throws SQLException, ApiException {
-        Map<String, Object> subscriptionData = JsonUtil.jsonToMap(requestBody);
+        Map<String, Object> subscriptionData = null;
+        try {
+            subscriptionData = JsonUtil.jsonToMap(requestBody);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         if (!subscriptionData.containsKey("customer") || !subscriptionData.containsKey("billing_period") || !subscriptionData.containsKey("billing_period_unit") || !subscriptionData.containsKey("total_due") || !subscriptionData.containsKey("activated_at") || !subscriptionData.containsKey("current_term_start") || !subscriptionData.containsKey("current_term_end") || !subscriptionData.containsKey("status")) {
             throw new ApiException(400, "Missing required fields");
         }
@@ -114,7 +119,12 @@ public class SubscriptionHandler implements HttpHandler {
     }
 
     private String updateSubscription(int subscriptionId, String requestBody) throws SQLException, ApiException {
-        Map<String, Object> subscriptionData = JsonUtil.jsonToMap(requestBody);
+        Map<String, Object> subscriptionData = null;
+        try {
+            subscriptionData = JsonUtil.jsonToMap(requestBody);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         if (subscriptionData.isEmpty()) {
             throw new ApiException(400, "Missing fields to update");
         }

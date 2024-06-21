@@ -6,12 +6,15 @@ import com.subscription.utils.JsonUtil;
 import com.subscription.utils.ApiException;
 import com.subscription.utils.Authentication;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.sql.*;
-import java.util.HashMap;
 import java.util.Map;
 
 public class CustomerHandler implements HttpHandler {
+    private final String apiKey;
+
+    public  CustomerHandler(String apiKey){
+        this.apiKey = apiKey;
+    }
     @Override
     public void handle(HttpExchange exchange) throws IOException {
         String apiKey = exchange.getRequestHeaders().getFirst("API-Key");
@@ -81,7 +84,7 @@ public class CustomerHandler implements HttpHandler {
         }
     }
 
-    private String createCustomer(String requestBody) throws SQLException, ApiException {
+    private String createCustomer(String requestBody) throws SQLException, ApiException, IOException {
         Map<String, Object> customerData = JsonUtil.jsonToMap(requestBody);
         if (!customerData.containsKey("email") || !customerData.containsKey("first_name") || !customerData.containsKey("last_name")) {
             throw new ApiException(400, "Missing required fields");
@@ -110,7 +113,7 @@ public class CustomerHandler implements HttpHandler {
         }
     }
 
-    private String updateCustomer(int customerId, String requestBody) throws SQLException, ApiException {
+    private String updateCustomer(int customerId, String requestBody) throws SQLException, ApiException, IOException {
         Map<String, Object> customerData = JsonUtil.jsonToMap(requestBody);
         if (customerData.isEmpty()) {
             throw new ApiException(400, "Missing fields to update");
