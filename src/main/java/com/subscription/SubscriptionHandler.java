@@ -26,11 +26,30 @@ public class SubscriptionHandler implements HttpHandler {
 
         try {
             if (method.equals("GET")) {
-                if (pathSegments.length == 2) {
-                    response = getAllSubscriptions();
-                } else if (pathSegments.length == 3) {
+                if (pathSegments.length == 3) {
                     int subscriptionId = Integer.parseInt(pathSegments[2]);
                     response = getSubscriptionById(subscriptionId);
+                } else if (pathSegments.length == 2 && pathSegments[1].equals("subscriptions")) {
+                    String query = exchange.getRequestURI().getQuery();
+                    String sortBy = null;
+                    String sortType = null;
+
+                    // Parse query parameters
+                    if (query != null) {
+                        String[] queryParams = query.split("&");
+                        for (String param : queryParams) {
+                            String[] pair = param.split("=");
+                            if (pair.length == 2) {
+                                if (pair[0].equals("sort_by")) {
+                                    sortBy = pair[1];
+                                } else if (pair[0].equals("sort_type")) {
+                                    sortType = pair[1];
+                                }
+                            }
+                        }
+                    }
+
+                    response = getAllSubscriptions(sortBy, sortType);
                 }
             } else if (method.equals("POST")) {
                 if (pathSegments.length == 2) {
@@ -59,13 +78,26 @@ public class SubscriptionHandler implements HttpHandler {
         }
     }
 
-    private String getAllSubscriptions() throws SQLException {
+    private String getAllSubscriptions(String sortBy, String sortType) throws SQLException, ApiException {
+        String query = "SELECT * FROM subscriptions";
+
+        if (sortBy != null && sortType != null) {
+            // Validate sort type (asc or desc)
+            if (!sortType.equalsIgnoreCase("asc") && !sortType.equalsIgnoreCase("desc")) {
+                throw new ApiException(400, "Invalid sort type. Should be 'asc' or 'desc'.");
+            }
+
+            // Sort by current_term_end
+            query += " ORDER BY " + sortBy + " " + sortType;
+        }
+
         Connection conn = Database.getConnection();
         Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM subscriptions");
+        ResultSet rs = stmt.executeQuery(query);
 
         return JsonUtil.resultSetToJson(rs);
     }
+
 
     private String getSubscriptionById(int subscriptionId) throws SQLException, ApiException {
         Connection conn = Database.getConnection();
@@ -73,11 +105,7 @@ public class SubscriptionHandler implements HttpHandler {
         stmt.setInt(1, subscriptionId);
         ResultSet rs = stmt.executeQuery();
 
-        if (rs.next()) {
-            return JsonUtil.resultSetToJson(rs);
-        } else {
-            throw new ApiException(404, "main.java.com.subscription.models.Subscription not found");
-        }
+        return JsonUtil.resultSetToJson(rs);
     }
 
     private String createSubscription(String requestBody) throws SQLException, ApiException {

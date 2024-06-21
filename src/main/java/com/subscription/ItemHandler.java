@@ -26,11 +26,26 @@ public class ItemHandler implements HttpHandler {
 
         try {
             if (method.equals("GET")) {
-                if (pathSegments.length == 2) {
-                    response = getAllItems();
-                } else if (pathSegments.length == 3) {
+                if (pathSegments.length == 3) {
                     int itemId = Integer.parseInt(pathSegments[2]);
                     response = getItemById(itemId);
+                } else if (pathSegments.length == 2 && pathSegments[1].equals("items")) {
+                    String query = exchange.getRequestURI().getQuery();
+                    String isActiveParam = null;
+
+                    // Parse query parameters
+                    if (query != null) {
+                        String[] queryParams = query.split("&");
+                        for (String param : queryParams) {
+                            String[] pair = param.split("=");
+                            if (pair.length == 2 && pair[0].equals("is_active")) {
+                                isActiveParam = pair[1];
+                                break;
+                            }
+                        }
+                    }
+
+                    response = getAllItems(isActiveParam);
                 }
             } else if (method.equals("POST")) {
                 if (pathSegments.length == 2) {
@@ -59,13 +74,21 @@ public class ItemHandler implements HttpHandler {
         }
     }
 
-    private String getAllItems() throws SQLException {
+    private String getAllItems(String isActiveParam) throws SQLException {
+        String query = "SELECT * FROM items";
+
+        if (isActiveParam != null && !isActiveParam.isEmpty()) {
+            boolean isActive = Boolean.parseBoolean(isActiveParam);
+            query += " WHERE is_active = " + (isActive ? 1 : 0);
+        }
+
         Connection conn = Database.getConnection();
         Statement stmt = conn.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM items");
+        ResultSet rs = stmt.executeQuery(query);
 
         return JsonUtil.resultSetToJson(rs);
     }
+
 
     private String getItemById(int itemId) throws SQLException, ApiException {
         Connection conn = Database.getConnection();
@@ -73,11 +96,7 @@ public class ItemHandler implements HttpHandler {
         stmt.setInt(1, itemId);
         ResultSet rs = stmt.executeQuery();
 
-        if (rs.next()) {
             return JsonUtil.resultSetToJson(rs);
-        } else {
-            throw new ApiException(404, "main.java.com.subscription.models.Item not found");
-        }
     }
 
     private String createItem(String requestBody) throws SQLException, ApiException, IOException {

@@ -7,6 +7,7 @@ import com.subscription.utils.ApiException;
 import com.subscription.utils.Authentication;
 import java.io.IOException;
 import java.sql.*;
+import java.util.Arrays;
 import java.util.Map;
 
 public class CustomerHandler implements HttpHandler {
@@ -25,31 +26,41 @@ public class CustomerHandler implements HttpHandler {
 
         String method = exchange.getRequestMethod();
         String path = exchange.getRequestURI().getPath();
+        String query = exchange.getRequestURI().getQuery();
         String[] pathSegments = path.split("/");
         String response = "";
 
         try {
             if (method.equals("GET")) {
+                System.out.println("Path segments: " + Arrays.toString(pathSegments));
                 if (pathSegments.length == 3 && pathSegments[1].equals("customers")) {
                     int customerId = Integer.parseInt(pathSegments[2]);
-                    if (exchange.getRequestURI().getPath().endsWith("/cards")) {
+                    response = getCustomerById(customerId);
+                } else if (pathSegments.length == 4 && pathSegments[1].equals("customers")) {
+                    int customerId = Integer.parseInt(pathSegments[2]);
+                    if (pathSegments[3].equals("cards")) {
                         response = getCustomerCards(customerId);
-                    } else if (exchange.getRequestURI().getPath().endsWith("/subscriptions")) {
-                        String subscriptionStatus = exchange.getRequestURI().getQuery();
-                        response = getCustomerSubscriptions(customerId, subscriptionStatus);
-                    } else {
-                        response = getCustomerById(customerId);
+                    } else if (pathSegments[3].equals("subscriptions")) {
+                        if (query != null && query.startsWith("subscription_status=")) {
+                            String status = query.split("=")[1];
+                            response = getCustomerSubscriptionsByStatus(customerId, status);
+                        } else {
+                            response = getCustomerSubscriptions(customerId);
+                        }
                     }
-                } else if (pathSegments.length == 2) {
+                } else if (pathSegments.length == 2 && pathSegments[1].equals("customers")) {
                     response = getAllCustomers();
+                } else {
+                    JsonUtil.sendResponse(exchange, 404, "Not Found"); // Handle jika path tidak sesuai
+                    return;
                 }
             } else if (method.equals("POST")) {
-                if (pathSegments.length == 2) {
+                if (pathSegments.length == 2 && pathSegments[1].equals("customers")) {
                     String requestBody = new String(exchange.getRequestBody().readAllBytes());
                     response = createCustomer(requestBody);
                 }
             } else if (method.equals("PUT")) {
-                if (pathSegments.length == 3) {
+                if (pathSegments.length == 3 && pathSegments[1].equals("customers")) {
                     int customerId = Integer.parseInt(pathSegments[2]);
                     String requestBody = new String(exchange.getRequestBody().readAllBytes());
                     response = updateCustomer(customerId, requestBody);
@@ -66,8 +77,19 @@ public class CustomerHandler implements HttpHandler {
         } catch (ApiException e) {
             JsonUtil.sendResponse(exchange, e.getStatusCode(), e.getMessage());
         } catch (Exception e) {
+            e.printStackTrace(); // Tambahkan logging untuk detail exception
             JsonUtil.sendResponse(exchange, 500, "Internal Server Error");
         }
+    }
+
+    private String getCustomerSubscriptions(int customerId) throws SQLException, ApiException{
+        String query = "SELECT * FROM subscriptions WHERE customer = ?";
+        Connection conn = Database.getConnection();
+        PreparedStatement stmt = conn.prepareStatement(query);
+        stmt.setInt(1, customerId);
+        ResultSet rs = stmt.executeQuery();
+
+        return JsonUtil.resultSetToJson(rs);
     }
 
     private String getAllCustomers() throws SQLException {
@@ -80,17 +102,17 @@ public class CustomerHandler implements HttpHandler {
 
     private String getCustomerCards(int customerId) throws SQLException, ApiException {
         Connection conn = Database.getConnection();
-        PreparedStatement stmt = conn.prepareStatement("SELECT * FROM cards WHERE customer_id = ?");
+        PreparedStatement stmt = conn.prepareStatement("SELECT * FROM cards WHERE customer = ?");
         stmt.setInt(1, customerId);
         ResultSet rs = stmt.executeQuery();
 
         return JsonUtil.resultSetToJson(rs);
     }
 
-    private String getCustomerSubscriptions(int customerId, String subscriptionStatus) throws SQLException, ApiException {
-        String query = "SELECT * FROM subscriptions WHERE customer_id = ?";
-        if (subscriptionStatus != null) {
-            switch (subscriptionStatus) {
+    private String getCustomerSubscriptionsByStatus(int customerId, String status) throws SQLException, ApiException {
+        String query = "SELECT * FROM subscriptions WHERE customer = ?";
+        if (status != null && !status.isEmpty()) {
+            switch (status.toLowerCase()) {
                 case "active":
                     query += " AND status = 'active'";
                     break;
@@ -101,7 +123,7 @@ public class CustomerHandler implements HttpHandler {
                     query += " AND status = 'non-renewing'";
                     break;
                 default:
-                    throw new ApiException(400, "Invalid subscription status filter");
+                    throw new ApiException(400, "Invalid subscription status filter: " + status);
             }
         }
 
@@ -113,18 +135,15 @@ public class CustomerHandler implements HttpHandler {
         return JsonUtil.resultSetToJson(rs);
     }
 
-    private String getCustomerById(int customerId) throws SQLException, ApiException {
 
+    private String getCustomerById(int customerId) throws SQLException, ApiException {
+        System.out.println("Fetching customer with ID: " + customerId);
         Connection conn = Database.getConnection();
         PreparedStatement stmt = conn.prepareStatement("SELECT * FROM customers WHERE id = ?");
         stmt.setInt(1, customerId);
         ResultSet rs = stmt.executeQuery();
 
-        if (rs.next()) {
-            return JsonUtil.resultSetToJson(rs);
-        } else {
-            throw new ApiException(404, "Customer not found");
-        }
+        return JsonUtil.resultSetToJson(rs);
     }
 
     private String createCustomer(String requestBody) throws SQLException, ApiException, IOException {
